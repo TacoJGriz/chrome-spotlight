@@ -32,4 +32,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.windows.update(request.windowId, { focused: true });
     }
   }
+
+  if (request.action === "defaultSearch") {
+    chrome.search.query({ 
+      text: request.query, 
+      disposition: "NEW_TAB" 
+    });
+  }
 });

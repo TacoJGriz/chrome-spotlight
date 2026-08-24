@@ -1,9 +1,89 @@
 let currentResults = [];
 let selectedIndex = 0;
 
+const hostElement = document.createElement('div');
+hostElement.id = 'custom-spotlight-host';
+hostElement.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647; pointer-events: none;';
+document.body.appendChild(hostElement);
+
+const shadow = hostElement.attachShadow({ mode: 'open' });
+
+const styles = document.createElement('style');
+styles.textContent = `
+  #custom-spotlight-container {
+    position: absolute;
+    top: 20vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    background: #1e1e2e;
+    border: 2px solid #b4befe;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #cdd6f4;
+    overflow: hidden;
+    pointer-events: auto; /* Re-enable pointer events for the search box */
+    display: none;
+  }
+  #custom-spotlight-input {
+    width: 100%;
+    padding: 20px;
+    font-size: 20px;
+    background: transparent;
+    border: none;
+    color: #cdd6f4;
+    outline: none;
+    box-sizing: border-box;
+  }
+  #custom-spotlight-results {
+    max-height: 400px;
+    overflow-y: auto;
+    border-top: 1px solid #313244;
+  }
+  .result-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    cursor: pointer;
+  }
+  .result-item.selected {
+    background: #313244;
+  }
+  .result-icon, .result-icon-placeholder {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .result-icon-placeholder {
+    background: #45475a;
+  }
+  .result-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .result-title {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .result-subtitle {
+    font-size: 12px;
+    color: #a6adc8; /* Faint subtitle color */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+`;
+shadow.appendChild(styles);
+
 const container = document.createElement('div');
 container.id = 'custom-spotlight-container';
-container.style.display = 'none';
 
 const input = document.createElement('input');
 input.id = 'custom-spotlight-input';
@@ -16,7 +96,7 @@ resultsDiv.id = 'custom-spotlight-results';
 
 container.appendChild(input);
 container.appendChild(resultsDiv);
-document.body.appendChild(container);
+shadow.appendChild(container);
 
 const BANGS = {
   '!g': 'https://google.com/search?q=',
@@ -31,7 +111,6 @@ function scoreItem(target, query) {
   const q = query.toLowerCase();
 
   if (t === q) return 1000;
-
   if (t.startsWith(q)) return 500 + (100 / t.length);
 
   const words = t.split(/[\s\-_/.]+/);
@@ -41,27 +120,18 @@ function scoreItem(target, query) {
 
   if (t.includes(q)) return 200 + (50 / t.length);
 
-  let score = 0;
-  let tIdx = 0;
-  let qIdx = 0;
-  let consecutiveMatches = 0;
-
+  let score = 0, tIdx = 0, qIdx = 0, consecutiveMatches = 0;
   while (tIdx < t.length && qIdx < q.length) {
     if (t[tIdx] === q[qIdx]) {
-      qIdx++;
-      consecutiveMatches++;
-      score += 10 + (consecutiveMatches * 5);
+      qIdx++; consecutiveMatches++;
+      score += 10 + (consecutiveMatches * 5); 
     } else {
       consecutiveMatches = 0;
     }
     tIdx++;
   }
-
-  if (qIdx === q.length) {
-    return score - (t.length * 0.1);
-  }
-
-  return 0;
+  if (qIdx === q.length) return score - (t.length * 0.1); 
+  return 0; 
 }
 
 function openSpotlight() {
@@ -101,11 +171,7 @@ function updateSelection() {
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "toggle") {
-    if (container.style.display === 'none') {
-      openSpotlight();
-    } else {
-      closeSpotlight();
-    }
+    container.style.display === 'none' ? openSpotlight() : closeSpotlight();
   }
 });
 
@@ -128,7 +194,7 @@ input.addEventListener('input', (e) => {
 
   const bangMatch = trimmedQuery.match(/^(![a-z])\s+(.*)/);
   if (bangMatch) {
-    resultsDiv.innerHTML = `<div class="result-item selected">Press Enter to search web using ${bangMatch[1]}</div>`;
+    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search web using ${bangMatch[1]}</div></div></div>`;
     currentResults = [];
     return;
   }
@@ -141,7 +207,6 @@ input.addEventListener('input', (e) => {
       (items || []).forEach(item => {
         const title = item.title || item.name || '';
         const url = item.url || '';
-
         const titleScore = scoreItem(title, trimmedQuery);
         const urlScore = scoreItem(url, trimmedQuery) * 0.5;
         const totalScore = Math.max(titleScore, urlScore);
@@ -168,6 +233,14 @@ input.addEventListener('input', (e) => {
       div.className = 'result-item';
 
       let iconUrl = '';
+      let cleanUrl = '';
+      
+      if (item.url) {
+        try {
+          cleanUrl = new URL(item.url).hostname.replace(/^www\./, '');
+        } catch(e) {}
+      }
+
       if (category === 'Tab' && item.favIconUrl) {
         iconUrl = item.favIconUrl;
       } else if (item.url) {
@@ -175,14 +248,17 @@ input.addEventListener('input', (e) => {
       }
 
       const imgHtml = iconUrl ? `<img src="${iconUrl}" class="result-icon">` : `<div class="result-icon-placeholder"></div>`;
-      div.innerHTML = `${imgHtml} <span class="result-text"><strong>[${category}]</strong> ${item.title || item.name}</span>`;
+      
+      div.innerHTML = `
+        ${imgHtml} 
+        <div class="result-content">
+          <div class="result-title"><strong>[${category}]</strong> ${item.title || item.name}</div>
+          ${cleanUrl ? `<div class="result-subtitle">${cleanUrl}</div>` : ''}
+        </div>
+      `;
 
-      div.onmouseenter = () => {
-        selectedIndex = index;
-        updateSelection();
-      };
+      div.onmouseenter = () => { selectedIndex = index; updateSelection(); };
       div.onclick = () => executeItem(obj);
-
       resultsDiv.appendChild(div);
     });
 
@@ -194,11 +270,9 @@ input.addEventListener('keydown', (e) => {
   if (e.key === 'Tab') {
     e.preventDefault();
     if (currentResults.length > 0) {
-      if (e.shiftKey) {
-        selectedIndex = (selectedIndex - 1 + currentResults.length) % currentResults.length;
-      } else {
-        selectedIndex = (selectedIndex + 1) % currentResults.length;
-      }
+      selectedIndex = e.shiftKey 
+        ? (selectedIndex - 1 + currentResults.length) % currentResults.length 
+        : (selectedIndex + 1) % currentResults.length;
       updateSelection();
     }
   } else if (e.key === 'ArrowDown') {
@@ -215,7 +289,9 @@ input.addEventListener('keydown', (e) => {
     }
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    const bangMatch = input.value.trim().match(/^(![a-z])\s+(.*)/);
+    const queryStr = input.value.trim();
+    const bangMatch = queryStr.match(/^(![a-z])\s+(.*)/);
+    
     if (bangMatch && BANGS[bangMatch[1]]) {
       window.open(BANGS[bangMatch[1]] + encodeURIComponent(bangMatch[2]), '_blank');
       closeSpotlight();
@@ -224,6 +300,9 @@ input.addEventListener('keydown', (e) => {
 
     if (currentResults.length > 0 && selectedIndex >= 0) {
       executeItem(currentResults[selectedIndex]);
+    } else if (queryStr.length > 0) {
+      chrome.runtime.sendMessage({ action: "defaultSearch", query: queryStr });
+      closeSpotlight();
     }
   } else if (e.key === 'Escape') {
     closeSpotlight();
