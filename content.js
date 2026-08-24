@@ -171,7 +171,7 @@ function updateSelection() {
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "toggle") {
-    container.style.display === 'none' ? openSpotlight() : closeSpotlight();
+    container.style.display === 'block' ? closeSpotlight() : openSpotlight();  
   }
 });
 
@@ -305,6 +305,28 @@ input.addEventListener('keydown', (e) => {
       closeSpotlight();
     }
   } else if (e.key === 'Escape') {
+    closeSpotlight();
+  }
+});
+
+container.addEventListener('keydown', (e) => {
+  e.stopPropagation();
+});
+container.addEventListener('keyup', (e) => {
+  e.stopPropagation();
+});
+container.addEventListener('keypress', (e) => {
+  e.stopPropagation();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && container.style.display === 'block') {
+    closeSpotlight();
+  }
+});
+
+document.addEventListener('mousedown', (e) => {
+  if (container.style.display === 'block' && e.target !== hostElement) {
     closeSpotlight();
   }
 });
