@@ -17,7 +17,7 @@
 #custom-spotlight-input {
   width: 100%;
   padding: 20px;
-  font-size: 24px;
+  font-size: 20px;
   background: transparent;
   border: none;
   color: #cdd6f4;
@@ -32,9 +32,35 @@
 }
 
 .result-item {
-  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
+}
+
+.result-item.selected {
+  background: #313244;
+}
+
+.result-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.result-icon-placeholder {
+  width: 16px;
+  height: 16px;
+  margin-right: 12px;
+  background: #45475a;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.result-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
