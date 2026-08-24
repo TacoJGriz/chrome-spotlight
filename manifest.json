@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Spotlight Search",
+  "version": "1.0",
+  "description": "A custom spotlight search for Chrome",
+  "permissions": [
+    "bookmarks",
+    "history",
+    "tabs",
+    "management"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "commands": {
+    "toggle-spotlight": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Option+S"
+      },
+      "description": "Open Spotlight Search"
+    }
+  }
+}
