@@ -22,7 +22,7 @@ container.id = 'custom-spotlight-container';
 
 const input = document.createElement('input');
 input.id = 'custom-spotlight-input';
-input.placeholder = 'Search or use /t, /b, /h, /e, or !d ...';
+input.placeholder = 'Search...';
 input.autocomplete = 'off';
 input.spellcheck = false;
 
@@ -102,6 +102,9 @@ function executeItem(itemObj) {
   } else if (category === 'Calculator') {
     navigator.clipboard.writeText(item.value.toString());
     input.value = item.value.toString();
+  } else if (category === 'Extension') {
+    window.open(`chrome://extensions/?id=${item.id}`, '_blank');
+    closeSpotlight();
   } else if (category === 'Alias' || item.url) {
     window.open(item.url, '_blank');
     closeSpotlight();
@@ -261,7 +264,7 @@ input.addEventListener('input', (e) => {
       { key: '/t', desc: 'Search Open Tabs' },
       { key: '/b', desc: 'Search Bookmarks' },
       { key: '/h', desc: 'Search History' },
-      { key: '/e', desc: 'Search Extensions' }
+      //{ key: '/e', desc: 'Search Extensions' }
     ].filter(c => c.key.startsWith(trimmedQuery) || c.desc.toLowerCase().includes(searchTerm));
     
     const customCmds = Object.keys(customAliases)
@@ -272,7 +275,15 @@ input.addEventListener('input', (e) => {
     const cmds = [...nativeCmds, ...customCmds];
     
     if (cmds.length > 0) {
-      currentResults = cmds.map(c => ({
+      cmds.sort((a, b) => {
+        const aStarts = a.key.startsWith(trimmedQuery) ? 1 : 0;
+        const bStarts = b.key.startsWith(trimmedQuery) ? 1 : 0;
+        return bStarts - aStarts; 
+      });
+
+      const uniqueCmds = Array.from(new Map(cmds.map(item => [item.key, item])).values());
+
+      currentResults = uniqueCmds.map(c => ({
         category: 'Autocomplete',
         item: { name: `${c.key} - ${c.desc}`, value: `${c.key} ` }
       }));
@@ -290,6 +301,12 @@ input.addEventListener('input', (e) => {
     );
     
     if (matchingBangs.length > 0) {
+      matchingBangs.sort((a, b) => {
+        const aStarts = a.startsWith(trimmedQuery) ? 1 : 0;
+        const bStarts = b.startsWith(trimmedQuery) ? 1 : 0;
+        return bStarts - aStarts;
+      });
+
       currentResults = matchingBangs.map(k => ({
         category: 'Autocomplete',
         item: { name: `${k} - Search ${ALL_BANGS[k].name}`, value: `${k} ` }
@@ -301,13 +318,20 @@ input.addEventListener('input', (e) => {
   }
   
   let filter = null;
-  let processedQuery = rawQuery;
+  let processedQuery = rawQuery.trimStart();
   
-  if (processedQuery.startsWith('/t ')) { filter = 'Tab'; processedQuery = processedQuery.slice(3).trim(); }
-  else if (processedQuery.startsWith('/b ')) { filter = 'Bookmark'; processedQuery = processedQuery.slice(3).trim(); }
-  else if (processedQuery.startsWith('/h ')) { filter = 'History'; processedQuery = processedQuery.slice(3).trim(); }
-  else if (processedQuery.startsWith('/e ')) { filter = 'Extension'; processedQuery = processedQuery.slice(3).trim(); }
-  else { processedQuery = processedQuery.trim(); }
+  const filterMatch = processedQuery.match(/^\/(t|tabs|b|bookmarks|h|history)\b\s*(.*)/i); //|e|extensions)\b\s*(.*)/i);
+  
+  if (filterMatch) {
+    const f = filterMatch[1].toLowerCase();
+    if (f === 't' || f === 'tabs') filter = 'Tab';
+    if (f === 'b' || f === 'bookmarks') filter = 'Bookmark';
+    if (f === 'h' || f === 'history') filter = 'History';
+    //if (f === 'e' || f === 'extensions') filter = 'Extension';
+    processedQuery = filterMatch[2].trim();
+  } else {
+    processedQuery = processedQuery.trim();
+  }
 
   if (processedQuery.length === 0 && !filter) {
     resultsDiv.innerHTML = '';
