@@ -4,6 +4,8 @@ let selectedIndex = 0;
 let lastHoverX = 0;
 let lastHoverY = 0;
 
+let lastTargetHeight = 0;
+
 const hostElement = document.createElement('div');
 hostElement.id = 'custom-spotlight-host';
 hostElement.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647; pointer-events: none;';
@@ -65,6 +67,7 @@ function openSpotlight() {
   container.classList.remove('closing');
   container.style.display = 'block';
   container.style.height = 'auto';
+  lastTargetHeight = container.offsetHeight;
   input.focus();
 }
 
@@ -74,6 +77,7 @@ function closeSpotlight() {
   setTimeout(() => {
     if (container.classList.contains('closing')) {
       container.style.display = 'none';
+      container.style.height = 'auto';
       container.classList.remove('closing');
       input.value = '';
       resultsDiv.innerHTML = '';
@@ -120,7 +124,9 @@ function updateSelection() {
 }
 
 function renderResultsList() {
-  const startHeight = container.offsetHeight;
+  const currentVisualHeight = container.offsetHeight;
+  const previousInlineHeight = container.style.height;
+  const previousTransition = container.style.transition;
 
   resultsDiv.innerHTML = '';
   currentResults.forEach((obj, index) => {
@@ -189,11 +195,18 @@ function renderResultsList() {
   container.style.height = 'auto';
   const targetHeight = container.offsetHeight;
 
-  container.style.height = startHeight + 'px';
+  if (targetHeight === lastTargetHeight) {
+    container.style.height = previousInlineHeight;
+    container.style.transition = previousTransition;
+    return; 
+  }
+
+  container.style.height = currentVisualHeight + 'px';
   void container.offsetHeight; // Force reflow
 
   container.style.transition = '';
   container.style.height = targetHeight + 'px';
+  lastTargetHeight = targetHeight;
 }
 
 chrome.runtime.onMessage.addListener((request) => {
