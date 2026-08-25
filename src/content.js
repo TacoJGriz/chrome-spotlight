@@ -254,7 +254,7 @@ input.addEventListener('input', (e) => {
     return;
   }
 
-  if (trimmedQuery.startsWith('/') && !trimmedQuery.includes(' ')) {
+  if (trimmedQuery.startsWith('/') && !rawQuery.trimStart().includes(' ')) {
     const searchTerm = trimmedQuery.toLowerCase().slice(1);
     
     const nativeCmds = [
@@ -282,7 +282,7 @@ input.addEventListener('input', (e) => {
     }
   }
 
-  if (trimmedQuery.startsWith('!') && !trimmedQuery.includes(' ')) {
+  if (trimmedQuery.startsWith('!') && !rawQuery.trimStart().includes(' ')) {
     const searchTerm = trimmedQuery.toLowerCase().slice(1);
     
     const matchingBangs = Object.keys(ALL_BANGS).filter(k => 

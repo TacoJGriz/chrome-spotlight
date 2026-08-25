@@ -11,7 +11,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const query = request.query;
 
     Promise.all([
-      chrome.bookmarks.search(query.length > 0 ? query : ""),
+      chrome.bookmarks.search(query.length > 0 ? query : {}),
       chrome.history.search({ text: query, maxResults: 25 }),
       chrome.tabs.query({}),
       chrome.management.getAll()
