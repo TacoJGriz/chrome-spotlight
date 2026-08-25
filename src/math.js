@@ -1,37 +1,217 @@
 function calculateMath(query) {
-  let trimmed = query.trim().toLowerCase().replace(/x/g, '*');
-  if (!/\d/.test(trimmed)) return null;
+  let expr = query.trim().toLowerCase();
+  if (!expr || !/\d/.test(expr)) return null;
 
-  const factMatch = trimmed.match(/^(\d+)\s*!$/);
-  if (factMatch) {
-    const n = parseInt(factMatch[1], 10);
-    if (n === 0 || n === 1) return 1;
-    if (n > 170) return Infinity; 
-    let res = 1;
-    for (let i = 2; i <= n; i++) res *= i;
-    return res;
+  expr = expr.replace(/x/g, '*');
+
+  const pctOfMatch = expr.match(
+    /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*%\s*of\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/
+  );
+
+  if (pctOfMatch) {
+    return roundResult(
+      parseFloat(pctOfMatch[1]) * parseFloat(pctOfMatch[2]) / 100
+    );
   }
 
-  const pctMatch = trimmed.match(/^(-?\d*\.?\d+)\s*%\s*of\s*(-?\d*\.?\d+)$/);
-  if (pctMatch) return parseFloat(pctMatch[1]) * parseFloat(pctMatch[2]) / 100;
+  const singlePctMatch = expr.match(
+    /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*%$/
+  );
 
-  const singlePctMatch = trimmed.match(/^(-?\d*\.?\d+)\s*%$/);
-  if (singlePctMatch) return parseFloat(singlePctMatch[1]) / 100;
+  if (singlePctMatch) {
+    return roundResult(parseFloat(singlePctMatch[1]) / 100);
+  }
 
-  const mathMatch = trimmed.match(/^(-?\d*\.?\d+)\s*(%?)\s*([-+*/^]|\*\*)\s*(-?\d*\.?\d+)\s*(%?)$/);
-  if (mathMatch) {
-    let a = parseFloat(mathMatch[1]);
-    if (mathMatch[2] === '%') a = a / 100;
-    const op = mathMatch[3];
-    let b = parseFloat(mathMatch[4]);
-    if (mathMatch[5] === '%') b = b / 100;
-    switch(op) {
-      case '+': return a + b;
-      case '-': return a - b;
-      case '*': return a * b;
-      case '/': return b !== 0 ? a / b : null;
-      case '^': case '**': return Math.pow(a, b);
+  let pos = 0;
+
+  function skipSpaces() {
+    while (pos < expr.length && /\s/.test(expr[pos])) {
+      pos++;
     }
   }
-  return null; 
+
+  function peek() {
+    skipSpaces();
+    return expr[pos];
+  }
+
+  function consume(char) {
+    skipSpaces();
+
+    if (expr.startsWith(char, pos)) {
+      pos += char.length;
+      return true;
+    }
+
+    return false;
+  }
+
+  function parseNumber() {
+    skipSpaces();
+
+    const match = expr
+      .slice(pos)
+      .match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+
+    if (!match) {
+      throw new Error('Expected number');
+    }
+
+    pos += match[0].length;
+
+    return parseFloat(match[0]);
+  }
+
+  function factorial(n) {
+    if (!Number.isFinite(n)) return Infinity;
+
+    if (n < 0 || !Number.isInteger(n)) {
+      throw new Error('Invalid factorial');
+    }
+
+    if (n > 170) {
+      return Infinity;
+    }
+
+    if (n === 0 || n === 1) {
+      return 1;
+    }
+
+    let result = 1;
+
+    for (let i = 2; i <= n; i++) {
+      result *= i;
+    }
+
+    return result;
+  }
+
+  function parsePrimary() {
+    skipSpaces();
+
+    if (consume('(')) {
+      const value = parseAddSub();
+
+      if (!consume(')')) {
+        throw new Error('Missing closing parenthesis');
+      }
+
+      return value;
+    }
+
+    return parseNumber();
+  }
+
+  function parseFactorial() {
+    let value = parsePrimary();
+
+    while (consume('!')) {
+      value = factorial(value);
+    }
+
+    return value;
+  }
+
+  function parseUnary() {
+    skipSpaces();
+
+    if (consume('+')) {
+      return parseUnary();
+    }
+
+    if (consume('-')) {
+      return -parseUnary();
+    }
+
+    return parseFactorial();
+  }
+
+  function parsePower() {
+    let value = parseUnary();
+
+    skipSpaces();
+
+    if (consume('**')) {
+      const exponent = parsePower();
+      value = Math.pow(value, exponent);
+    } else if (consume('^')) {
+      const exponent = parsePower();
+      value = Math.pow(value, exponent);
+    }
+
+    return value;
+  }
+
+  function parseMulDiv() {
+    let value = parsePower();
+
+    while (true) {
+      skipSpaces();
+
+      if (consume('*')) {
+        value *= parsePower();
+      } else if (consume('/')) {
+        const divisor = parsePower();
+
+        if (divisor === 0) {
+          throw new Error('Division by zero');
+        }
+
+        value /= divisor;
+      } else {
+        break;
+      }
+    }
+
+    return value;
+  }
+
+  function parseAddSub() {
+    let value = parseMulDiv();
+
+    while (true) {
+      skipSpaces();
+
+      if (consume('+')) {
+        value += parseMulDiv();
+      } else if (consume('-')) {
+        value -= parseMulDiv();
+      } else {
+        break;
+      }
+    }
+
+    return value;
+  }
+
+  try {
+    const result = parseAddSub();
+
+    skipSpaces();
+
+    if (pos !== expr.length) {
+      return null;
+    }
+
+    if (typeof result !== 'number' || Number.isNaN(result)) {
+      return null;
+    }
+
+    if (!Number.isFinite(result)) {
+      return Infinity;
+    }
+
+    return roundResult(result);
+
+  } catch (e) {
+    return null;
+  }
+
+  function roundResult(value) {
+    if (!Number.isFinite(value)) {
+      return value;
+    }
+
+    return Math.round(value * 100000) / 100000;
+  }
 }
