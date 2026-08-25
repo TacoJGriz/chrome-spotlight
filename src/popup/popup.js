@@ -87,3 +87,5 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+
+document.getElementById('optionsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());

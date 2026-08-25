@@ -28,13 +28,26 @@ container.appendChild(input);
 container.appendChild(resultsDiv);
 shadow.appendChild(container);
 
-chrome.storage.sync.get('themeConfig', (data) => {
+let customBangs = {};
+let customAliases = {};
+
+chrome.storage.sync.get(['themeConfig', 'customBangs', 'customAliases'], (data) => {
   if (data.themeConfig) applyTheme(data.themeConfig);
+  if (data.customBangs) customBangs = data.customBangs;
+  if (data.customAliases) customAliases = data.customAliases;
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.themeConfig) applyTheme(changes.themeConfig.newValue);
+  if (namespace === 'sync') {
+    if (changes.themeConfig) applyTheme(changes.themeConfig.newValue);
+    if (changes.customBangs) customBangs = changes.customBangs.newValue;
+    if (changes.customAliases) customAliases = changes.customAliases.newValue;
+  }
 });
+
+function getCombinedBangs() {
+  return { ...BANGS, ...customBangs };
+}
 
 function applyTheme(theme) {
   hostElement.style.setProperty('--bg-color', theme.bgColor);
@@ -73,6 +86,9 @@ function executeItem(itemObj) {
   } else if (category === 'Calculator') {
     navigator.clipboard.writeText(item.value.toString());
     input.value = item.value.toString();
+  } else if (category === 'Alias' || item.url) {
+    window.open(item.url, '_blank');
+    closeSpotlight();
   } else if (item.url) {
     window.open(item.url, '_blank');
     closeSpotlight();
@@ -156,14 +172,21 @@ chrome.runtime.onMessage.addListener((request) => {
 input.addEventListener('input', (e) => {
   let rawQuery = e.target.value;
   const trimmedQuery = rawQuery.trim();
-
+  const ALL_BANGS = getCombinedBangs();
+  
   if (trimmedQuery.startsWith('/') && !trimmedQuery.includes(' ')) {
-    const cmds = [
+    const nativeCmds = [
       { key: '/t', desc: 'Search Open Tabs' },
       { key: '/b', desc: 'Search Bookmarks' },
       { key: '/h', desc: 'Search History' },
       { key: '/e', desc: 'Search Extensions' }
     ].filter(c => c.key.startsWith(trimmedQuery));
+    
+    const customCmds = Object.keys(customAliases)
+      .filter(k => k.startsWith(trimmedQuery))
+      .map(k => ({ key: k, desc: customAliases[k].name }));
+
+    const cmds = [...nativeCmds, ...customCmds];
     
     if (cmds.length > 0) {
       currentResults = cmds.map(c => ({
@@ -177,18 +200,18 @@ input.addEventListener('input', (e) => {
   }
 
   if (trimmedQuery.startsWith('!') && !trimmedQuery.includes(' ')) {
-    const matchingBangs = Object.keys(BANGS).filter(k => k.startsWith(trimmedQuery));
+    const matchingBangs = Object.keys(ALL_BANGS).filter(k => k.startsWith(trimmedQuery));
     if (matchingBangs.length > 0) {
       currentResults = matchingBangs.map(k => ({
         category: 'Autocomplete',
-        item: { name: `${k} - Search ${BANGS[k].name}`, value: `${k} ` }
+        item: { name: `${k} - Search ${ALL_BANGS[k].name}`, value: `${k} ` }
       }));
       selectedIndex = 0;
       renderResultsList();
       return;
     }
   }
-
+  
   let filter = null;
   if (rawQuery.startsWith('/t ')) { filter = 'Tab'; rawQuery = rawQuery.slice(3); }
   else if (rawQuery.startsWith('/b ')) { filter = 'Bookmark'; rawQuery = rawQuery.slice(3); }
@@ -196,16 +219,23 @@ input.addEventListener('input', (e) => {
   else if (rawQuery.startsWith('/e ')) { filter = 'Extension'; rawQuery = rawQuery.slice(3); }
 
   const processedQuery = rawQuery.trim();
-
   if (processedQuery.length === 0 && !filter) {
     resultsDiv.innerHTML = '';
     currentResults = [];
     return;
   }
 
-  const bangMatch = processedQuery.match(/^(![a-zA-Z]+)\s+(.*)/);
-  if (bangMatch && BANGS[bangMatch[1]]) {
-    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search ${BANGS[bangMatch[1]].name} for "${bangMatch[2]}"</div></div></div>`;
+  const aliasMatch = Object.keys(customAliases).find(k => processedQuery === k || processedQuery.startsWith(k + ' '));
+  if (aliasMatch) {
+    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to open <strong>${customAliases[aliasMatch].name}</strong></div></div></div>`;
+    currentResults = [{ category: 'Alias', item: customAliases[aliasMatch] }];
+    selectedIndex = 0;
+    return;
+  }
+
+  const bangMatch = processedQuery.match(/^(![a-zA-Z0-9]+)\s+(.*)/);
+  if (bangMatch && ALL_BANGS[bangMatch[1]]) {
+    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search ${ALL_BANGS[bangMatch[1]].name} for "${bangMatch[2]}"</div></div></div>`;
     currentResults = [];
     return;
   }
@@ -272,10 +302,11 @@ input.addEventListener('keydown', (e) => {
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const queryStr = input.value.trim();
-    const bangMatch = queryStr.match(/^(![a-zA-Z]+)\s+(.*)/);
+    const ALL_BANGS = getCombinedBangs();
+    const bangMatch = queryStr.match(/^(![a-zA-Z0-9]+)\s+(.*)/);
     
-    if (bangMatch && BANGS[bangMatch[1]]) { 
-      window.open(BANGS[bangMatch[1]].url + encodeURIComponent(bangMatch[2]), '_blank');
+    if (bangMatch && ALL_BANGS[bangMatch[1]]) { 
+      window.open(ALL_BANGS[bangMatch[1]].url + encodeURIComponent(bangMatch[2]), '_blank');
       closeSpotlight();
       return;
     }

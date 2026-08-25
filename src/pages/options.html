@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spotlight Shortcuts</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #1e1e2e; color: #cdd6f4; max-width: 800px; margin: 40px auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #313244; padding-bottom: 10px; }
+    .card { background: #181825; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #313244; }
+    .form-row { display: flex; gap: 10px; margin-bottom: 15px; }
+    input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #45475a; background: #11111b; color: #cdd6f4; outline: none; }
+    button { padding: 10px 16px; background: #b4befe; color: #11111b; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:hover { opacity: 0.9; }
+    button.danger { background: #f38ba8; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #313244; }
+    .list-item:last-child { border-bottom: none; }
+    .code { color: #a6e3a1; font-family: monospace; font-size: 16px; width: 60px; }
+    .import-export { display: flex; gap: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>Custom Shortcuts & Bangs</h1>
+
+  <div class="card">
+    <h2>Custom Bangs (Search Engines)</h2>
+    <p style="color: #a6adc8; font-size: 14px;">Use bangs to search specific sites. Add your query parameter to the end of the URL (e.g., <code>https://mysite.com/search?q=</code>).</p>
+    <div class="form-row">
+      <input type="text" id="b-trigger" placeholder="Trigger (e.g. !jira)" style="flex: 0.5;">
+      <input type="text" id="b-name" placeholder="Name (e.g. Jira Tickets)">
+      <input type="text" id="b-url" placeholder="Search URL">
+      <button id="addBangBtn">Add Bang</button>
+    </div>
+    <div id="bangsList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Custom Aliases (Direct Links)</h2>
+    <p style="color: #a6adc8; font-size: 14px;">Use aliases to instantly open specific pages. Type the alias and hit Enter.</p>
+    <div class="form-row">
+      <input type="text" id="a-trigger" placeholder="Trigger (e.g. /gh)" style="flex: 0.5;">
+      <input type="text" id="a-name" placeholder="Name (e.g. GitHub Profile)">
+      <input type="text" id="a-url" placeholder="Direct URL (e.g. https://github.com/myuser)">
+      <button id="addAliasBtn">Add Alias</button>
+    </div>
+    <div id="aliasesList"></div>
+  </div>
+
+  <div class="import-export">
+    <button id="exportShortcutsBtn">Export Shortcuts JSON</button>
+    <button id="importShortcutsBtn">Import Shortcuts JSON</button>
+    <input type="file" id="fileInputShortcuts" accept=".json" style="display: none;">
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
