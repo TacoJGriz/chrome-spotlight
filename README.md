@@ -5,7 +5,7 @@ A beautiful, open source, fully customizable spotlight search for Chromium-based
 #### Search the Web
 Just start typing and press `Enter`
 #### Bangs
-Inspired by [Helium](https://github.com/imputnet/helium), use bangs to instantly search popular websites
+Inspired by [Helium](https://github.com/imputnet/helium), use bangs (Use `!` at the beginning of a search) to instantly search popular websites, such as Google, Amazon, YouTube, and more
 #### Slashes
 Search your active tabs, recent history, or bookmarks with /t, /h, and /b 
 #### Shortcuts
