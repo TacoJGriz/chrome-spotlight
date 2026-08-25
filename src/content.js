@@ -9,7 +9,7 @@ document.body.appendChild(hostElement);
 const shadow = hostElement.attachShadow({ mode: 'open' });
 
 const styles = document.createElement('style');
-styles.textContent = SPOTLIGHT_CSS;
+styles.textContent = SPOTLIGHT_CSS; 
 shadow.appendChild(styles);
 
 const container = document.createElement('div');
@@ -61,6 +61,12 @@ function closeSpotlight() {
 function executeItem(itemObj) {
   const { item, category } = itemObj;
   
+  if (category === 'Autocomplete') {
+    input.value = item.value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+  
   if (category === 'Tab') {
     chrome.runtime.sendMessage({ action: "switchToTab", tabId: item.id, windowId: item.windowId });
     closeSpotlight();
@@ -85,6 +91,62 @@ function updateSelection() {
   });
 }
 
+function renderResultsList() {
+  resultsDiv.innerHTML = '';
+  currentResults.forEach((obj, index) => {
+    const { item, category } = obj;
+    const div = document.createElement('div');
+    div.className = 'result-item';
+
+    if (category === 'Autocomplete') {
+      const parts = item.name.split('-');
+      div.innerHTML = `
+        <div class="result-icon-placeholder" style="background: transparent; display: flex; align-items: center; justify-content: center; font-size: 18px;">⚡</div>
+        <div class="result-content">
+          <div class="result-title"><strong>[${parts[0].trim()}]</strong> ${parts[1].trim()}</div>
+        </div>
+        <div class="badge">Enter to select</div>
+      `;
+    } else if (category === 'Calculator') {
+      const calcIcon = `<svg class="calc-icon" viewBox="0 0 24 24"><path d="M19 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V4C21 2.9 20.1 2 19 2ZM13 19.99H11V17.99H13V19.99ZM13 15.99H11V13.99H13V15.99ZM17 19.99H15V17.99H17V19.99ZM17 15.99H15V13.99H17V15.99ZM19 11.99H5V5.99H19V11.99ZM9 19.99H7V17.99H9V19.99ZM9 15.99H7V13.99H9V15.99Z"/></svg>`;
+      div.innerHTML = `
+        ${calcIcon}
+        <div class="result-content">
+          <div class="result-title"><strong>[Math]</strong> ${item.equation} = <span class="calc-result-text">${item.value}</span></div>
+        </div>
+        <div class="badge">Enter to copy</div>
+      `;
+    } else {
+      let iconUrl = '';
+      let cleanUrl = '';
+      if (item.url) {
+        try { cleanUrl = new URL(item.url).hostname.replace(/^www\./, ''); } catch(e) {}
+      }
+
+      if (category === 'Tab' && item.favIconUrl) {
+        iconUrl = item.favIconUrl;
+      } else if (item.url) {
+        iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${encodeURIComponent(item.url)}`;
+      }
+
+      const imgHtml = iconUrl ? `<img src="${iconUrl}" class="result-icon">` : `<div class="result-icon-placeholder"></div>`;
+      div.innerHTML = `
+        ${imgHtml} 
+        <div class="result-content">
+          <div class="result-title"><strong>[${category}]</strong> ${item.title || item.name}</div>
+          ${cleanUrl ? `<div class="result-subtitle">${cleanUrl}</div>` : ''}
+        </div>
+      `;
+    }
+
+    div.onmouseenter = () => { selectedIndex = index; updateSelection(); };
+    div.onclick = () => executeItem(obj);
+    resultsDiv.appendChild(div);
+  });
+
+  updateSelection();
+}
+
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "toggle") {
     container.style.display === 'block' ? closeSpotlight() : openSpotlight();
@@ -93,29 +155,62 @@ chrome.runtime.onMessage.addListener((request) => {
 
 input.addEventListener('input', (e) => {
   let rawQuery = e.target.value;
-  let filter = null;
+  const trimmedQuery = rawQuery.trim();
 
+  if (trimmedQuery.startsWith('/') && !trimmedQuery.includes(' ')) {
+    const cmds = [
+      { key: '/t', desc: 'Search Open Tabs' },
+      { key: '/b', desc: 'Search Bookmarks' },
+      { key: '/h', desc: 'Search History' },
+      { key: '/e', desc: 'Search Extensions' }
+    ].filter(c => c.key.startsWith(trimmedQuery));
+    
+    if (cmds.length > 0) {
+      currentResults = cmds.map(c => ({
+        category: 'Autocomplete',
+        item: { name: `${c.key} - ${c.desc}`, value: `${c.key} ` }
+      }));
+      selectedIndex = 0;
+      renderResultsList();
+      return;
+    }
+  }
+
+  if (trimmedQuery.startsWith('!') && !trimmedQuery.includes(' ')) {
+    const matchingBangs = Object.keys(BANGS).filter(k => k.startsWith(trimmedQuery));
+    if (matchingBangs.length > 0) {
+      currentResults = matchingBangs.map(k => ({
+        category: 'Autocomplete',
+        item: { name: `${k} - Search ${BANGS[k].name}`, value: `${k} ` }
+      }));
+      selectedIndex = 0;
+      renderResultsList();
+      return;
+    }
+  }
+
+  let filter = null;
   if (rawQuery.startsWith('/t ')) { filter = 'Tab'; rawQuery = rawQuery.slice(3); }
   else if (rawQuery.startsWith('/b ')) { filter = 'Bookmark'; rawQuery = rawQuery.slice(3); }
   else if (rawQuery.startsWith('/h ')) { filter = 'History'; rawQuery = rawQuery.slice(3); }
   else if (rawQuery.startsWith('/e ')) { filter = 'Extension'; rawQuery = rawQuery.slice(3); }
 
-  const trimmedQuery = rawQuery.trim();
+  const processedQuery = rawQuery.trim();
 
-  if (trimmedQuery.length === 0 && !filter) {
+  if (processedQuery.length === 0 && !filter) {
     resultsDiv.innerHTML = '';
     currentResults = [];
     return;
   }
 
-  const bangMatch = trimmedQuery.match(/^(![a-z])\s+(.*)/);
-  if (bangMatch) {
-    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search web using ${bangMatch[1]}</div></div></div>`;
+  const bangMatch = processedQuery.match(/^(![a-zA-Z]+)\s+(.*)/);
+  if (bangMatch && BANGS[bangMatch[1]]) {
+    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search ${BANGS[bangMatch[1]].name} for "${bangMatch[2]}"</div></div></div>`;
     currentResults = [];
     return;
   }
 
-  chrome.runtime.sendMessage({ action: "search", query: trimmedQuery }, (data) => {
+  chrome.runtime.sendMessage({ action: "search", query: processedQuery }, (data) => {
     if (!data) return;
 
     let pool = [];
@@ -123,11 +218,11 @@ input.addEventListener('input', (e) => {
       (items || []).forEach(item => {
         const title = item.title || item.name || '';
         const url = item.url || '';
-        const titleScore = scoreItem(title, trimmedQuery);
-        const urlScore = scoreItem(url, trimmedQuery) * 0.5; 
+        const titleScore = scoreItem(title, processedQuery); 
+        const urlScore = scoreItem(url, processedQuery) * 0.5; 
         const totalScore = Math.max(titleScore, urlScore);
 
-        if (totalScore > 0 || trimmedQuery.length === 0) pool.push({ item, category, score: totalScore });
+        if (totalScore > 0 || processedQuery.length === 0) pool.push({ item, category, score: totalScore });
       });
     };
 
@@ -138,62 +233,18 @@ input.addEventListener('input', (e) => {
 
     pool.sort((a, b) => b.score - a.score);
 
-    const mathResult = calculateMath(trimmedQuery);
+    const mathResult = calculateMath(processedQuery); 
     if (mathResult !== null) {
       pool.unshift({
         category: 'Calculator',
-        item: { equation: trimmedQuery, value: mathResult },
+        item: { equation: processedQuery, value: mathResult },
         score: 9999
       });
     }
 
     currentResults = pool.slice(0, 10);
     selectedIndex = 0;
-
-    resultsDiv.innerHTML = '';
-    currentResults.forEach((obj, index) => {
-      const { item, category } = obj;
-      const div = document.createElement('div');
-      div.className = 'result-item';
-
-      if (category === 'Calculator') {
-        const calcIcon = `<svg class="calc-icon" viewBox="0 0 24 24"><path d="M19 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V4C21 2.9 20.1 2 19 2ZM13 19.99H11V17.99H13V19.99ZM13 15.99H11V13.99H13V15.99ZM17 19.99H15V17.99H17V19.99ZM17 15.99H15V13.99H17V15.99ZM19 11.99H5V5.99H19V11.99ZM9 19.99H7V17.99H9V19.99ZM9 15.99H7V13.99H9V15.99Z"/></svg>`;
-        div.innerHTML = `
-          ${calcIcon}
-          <div class="result-content">
-            <div class="result-title"><strong>[Math]</strong> ${item.equation} = <span class="calc-result-text">${item.value}</span></div>
-          </div>
-          <div class="badge">Enter to copy</div>
-        `;
-      } else {
-        let iconUrl = '';
-        let cleanUrl = '';
-        if (item.url) {
-          try { cleanUrl = new URL(item.url).hostname.replace(/^www\./, ''); } catch(e) {}
-        }
-
-        if (category === 'Tab' && item.favIconUrl) {
-          iconUrl = item.favIconUrl;
-        } else if (item.url) {
-          iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${encodeURIComponent(item.url)}`;
-        }
-
-        const imgHtml = iconUrl ? `<img src="${iconUrl}" class="result-icon">` : `<div class="result-icon-placeholder"></div>`;
-        div.innerHTML = `
-          ${imgHtml} 
-          <div class="result-content">
-            <div class="result-title"><strong>[${category}]</strong> ${item.title || item.name}</div>
-            ${cleanUrl ? `<div class="result-subtitle">${cleanUrl}</div>` : ''}
-          </div>
-        `;
-      }
-
-      div.onmouseenter = () => { selectedIndex = index; updateSelection(); };
-      div.onclick = () => executeItem(obj);
-      resultsDiv.appendChild(div);
-    });
-
-    updateSelection();
+    renderResultsList();
   });
 });
 
@@ -221,10 +272,10 @@ input.addEventListener('keydown', (e) => {
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const queryStr = input.value.trim();
-    const bangMatch = queryStr.match(/^(![a-z])\s+(.*)/);
+    const bangMatch = queryStr.match(/^(![a-zA-Z]+)\s+(.*)/);
     
-    if (bangMatch && BANGS[bangMatch[1]]) {
-      window.open(BANGS[bangMatch[1]] + encodeURIComponent(bangMatch[2]), '_blank');
+    if (bangMatch && BANGS[bangMatch[1]]) { 
+      window.open(BANGS[bangMatch[1]].url + encodeURIComponent(bangMatch[2]), '_blank');
       closeSpotlight();
       return;
     }
