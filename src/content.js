@@ -119,6 +119,9 @@ function executeItem(itemObj) {
   if (category === 'Tab') {
     chrome.runtime.sendMessage({ action: "switchToTab", tabId: item.id, windowId: item.windowId });
     closeSpotlight();
+  } else if (category === 'Search') {
+    chrome.runtime.sendMessage({ action: "defaultSearch", query: item.query });
+    closeSpotlight();
   } else if (category === 'Calculator') {
     navigator.clipboard.writeText(item.value.toString());
     input.value = item.value.toString();
@@ -165,6 +168,14 @@ function renderResultsList() {
           <div class="result-title"><strong>[${parts[0].trim()}]</strong> ${parts[1].trim()}</div>
         </div>
         <div class="badge">Enter to select</div>
+      `;
+    } else if (category === 'Search') {
+      div.innerHTML = `
+        <div class="result-icon-placeholder" style="background: transparent; display: flex; align-items: center; justify-content: center; font-size: 16px;">🔎</div>
+        <div class="result-content">
+          <div class="result-title">Search for <strong>"${item.query}"</strong></div>
+        </div>
+        <div class="badge">Enter to search</div>
       `;
     } else if (category === 'Calculator') {
       const calcIcon = `<svg class="calc-icon" viewBox="0 0 24 24"><path d="M19 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V4C21 2.9 20.1 2 19 2ZM13 19.99H11V17.99H13V19.99ZM13 15.99H11V13.99H13V15.99ZM17 19.99H15V17.99H17V19.99ZM17 15.99H15V13.99H17V15.99ZM19 11.99H5V5.99H19V11.99ZM9 19.99H7V17.99H9V19.99ZM9 15.99H7V13.99H9V15.99Z"/></svg>`;
@@ -405,6 +416,14 @@ input.addEventListener('input', (e) => {
     if (!filter || filter === 'Extension') pushItems(data.extensions, 'Extension');
 
     pool.sort((a, b) => b.score - a.score);
+
+    if (!filter && processedQuery.length > 0) {
+      pool.unshift({
+        category: 'Search',
+        item: { query: processedQuery },
+        score: 10000
+      });
+    }
 
     const mathResult = calculateMath(processedQuery); 
     if (mathResult !== null) {
