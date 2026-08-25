@@ -242,15 +242,18 @@ input.addEventListener('input', (e) => {
   }
 
   if (trimmedQuery.startsWith('/') && !trimmedQuery.includes(' ')) {
+    const searchTerm = trimmedQuery.toLowerCase().slice(1);
+    
     const nativeCmds = [
       { key: '/t', desc: 'Search Open Tabs' },
       { key: '/b', desc: 'Search Bookmarks' },
       { key: '/h', desc: 'Search History' },
       { key: '/e', desc: 'Search Extensions' }
-    ].filter(c => c.key.startsWith(trimmedQuery));
+    ].filter(c => c.key.startsWith(trimmedQuery) || c.desc.toLowerCase().includes(searchTerm));
     
     const customCmds = Object.keys(customAliases)
-      .filter(k => k.startsWith(trimmedQuery) && k !== trimmedQuery)
+      .filter(k => k.startsWith(trimmedQuery) || customAliases[k].name.toLowerCase().includes(searchTerm))
+      .filter(k => k !== trimmedQuery)
       .map(k => ({ key: k, desc: customAliases[k].name }));
 
     const cmds = [...nativeCmds, ...customCmds];
@@ -267,7 +270,12 @@ input.addEventListener('input', (e) => {
   }
 
   if (trimmedQuery.startsWith('!') && !trimmedQuery.includes(' ')) {
-    const matchingBangs = Object.keys(ALL_BANGS).filter(k => k.startsWith(trimmedQuery));
+    const searchTerm = trimmedQuery.toLowerCase().slice(1);
+    
+    const matchingBangs = Object.keys(ALL_BANGS).filter(k => 
+      k.startsWith(trimmedQuery) || ALL_BANGS[k].name.toLowerCase().includes(searchTerm)
+    );
+    
     if (matchingBangs.length > 0) {
       currentResults = matchingBangs.map(k => ({
         category: 'Autocomplete',
