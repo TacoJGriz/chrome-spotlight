@@ -72,15 +72,38 @@ const SPOTLIGHT_CSS = `
     animation: spotlightSlideOut 0.15s ease-in forwards;
   }
 
-  #custom-spotlight-input {
+  .input-wrapper {
+    display: flex;
+    align-items: center;
     width: 100%;
-    padding: 20px;
+    padding: 15px 20px;
+    box-sizing: border-box;
+  }
+
+  .command-pill {
+    display: none;
+    align-items: center;
+    background: var(--accent-color);
+    color: var(--text-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: calc(var(--font-size) - 1px);
+    font-weight: 600;
+    margin-right: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  #custom-spotlight-input {
+    flex-grow: 1;
     font-size: calc(var(--font-size) + 5px);
     background: transparent;
     border: none;
     color: var(--text-color);
     outline: none;
-    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    width: 100%;
   }
 
   #custom-spotlight-results {

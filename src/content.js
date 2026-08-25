@@ -20,6 +20,12 @@ shadow.appendChild(styles);
 const container = document.createElement('div');
 container.id = 'custom-spotlight-container';
 
+const inputWrapper = document.createElement('div');
+inputWrapper.className = 'input-wrapper';
+
+const pillDiv = document.createElement('div');
+pillDiv.className = 'command-pill';
+
 const input = document.createElement('input');
 input.id = 'custom-spotlight-input';
 input.placeholder = 'Search...';
@@ -29,9 +35,14 @@ input.spellcheck = false;
 const resultsDiv = document.createElement('div');
 resultsDiv.id = 'custom-spotlight-results';
 
-container.appendChild(input);
+inputWrapper.appendChild(pillDiv);
+inputWrapper.appendChild(input);
+
+container.appendChild(inputWrapper);
 container.appendChild(resultsDiv);
 shadow.appendChild(container);
+
+let activeCommandKey = '';
 
 let customBangs = {};
 let customAliases = {};
@@ -86,6 +97,9 @@ function closeSpotlight() {
       container.style.height = 'auto';
       container.classList.remove('closing');
       input.value = '';
+      activeCommandKey = '';
+      pillDiv.style.display = 'none';
+      pillDiv.textContent = '';
       resultsDiv.innerHTML = '';
       currentResults = [];
       selectedIndex = 0;
@@ -227,9 +241,31 @@ chrome.runtime.onMessage.addListener((request) => {
 });
 
 input.addEventListener('input', (e) => {
-  let rawQuery = e.target.value;
-  const trimmedQuery = rawQuery.trim();
   const ALL_BANGS = getCombinedBangs();
+
+  const pillMatch = input.value.match(/^(\/(t|tabs|b|bookmarks|h|history)|(![a-zA-Z0-9]+))\s+/i);
+  if (pillMatch && !activeCommandKey) {
+    const trigger = pillMatch[1].toLowerCase();
+    
+    let pillName = '';
+    if (trigger.startsWith('/')) {
+      if (trigger === '/t' || trigger === '/tabs') pillName = 'Tabs';
+      if (trigger === '/b' || trigger === '/bookmarks') pillName = 'Bookmarks';
+      if (trigger === '/h' || trigger === '/history') pillName = 'History';
+    } else if (trigger.startsWith('!') && ALL_BANGS[trigger]) {
+      pillName = ALL_BANGS[trigger].name;
+    }
+
+    if (pillName) {
+      activeCommandKey = pillMatch[1];
+      pillDiv.textContent = pillName;
+      pillDiv.style.display = 'flex';
+      input.value = input.value.slice(pillMatch[0].length);
+    }
+  }
+
+  let rawQuery = activeCommandKey ? `${activeCommandKey} ${input.value}` : input.value;
+  const trimmedQuery = rawQuery.trim();
   
   if (trimmedQuery.length === 0) {
     currentResults = [];
@@ -386,6 +422,15 @@ input.addEventListener('input', (e) => {
 });
 
 input.addEventListener('keydown', (e) => {
+  if (e.key === 'Backspace' && input.value === '' && activeCommandKey) {
+    e.preventDefault();
+    input.value = activeCommandKey; // Restores "/t" instead of "/t "
+    activeCommandKey = '';
+    pillDiv.style.display = 'none';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+
   if (e.key === 'Tab') {
     e.preventDefault();
     if (currentResults.length > 0) {
@@ -408,7 +453,10 @@ input.addEventListener('keydown', (e) => {
     }
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    const queryStr = input.value.trim();
+    
+    const rawQuery = activeCommandKey ? `${activeCommandKey} ${input.value}` : input.value;
+    const queryStr = rawQuery.trim();
+    
     const ALL_BANGS = getCombinedBangs();
     const bangMatch = queryStr.match(/^(![a-zA-Z0-9]+)\s+(.*)/);
     
