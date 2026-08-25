@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    :root {
+      --bg-color: #1e1e2e;
+      --border-color: #b4befe;
+      --text-color: #cdd6f4;
+    }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      width: 280px; 
+      padding: 15px 20px; 
+      background: var(--bg-color); 
+      color: var(--text-color); 
+      border: 2px solid var(--border-color);
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-top: 5px;
+      font-size: 18px;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+    }
+
+    .setting { 
+      margin-bottom: 16px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    input[type="color"] { 
+      border: 1px solid var(--border-color); 
+      width: 32px; 
+      height: 32px; 
+      padding: 0; 
+      cursor: pointer; 
+      border-radius: 6px;
+      background: transparent;
+    }
+    
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+    input[type="text"] { 
+      width: 90px; 
+      padding: 8px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 6px; 
+      background: rgba(0, 0, 0, 0.15); 
+      color: var(--text-color); 
+      outline: none; 
+      font-family: inherit;
+    }
+
+    button { 
+      width: 100%; 
+      padding: 10px; 
+      cursor: pointer; 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color); 
+      background: rgba(0, 0, 0, 0.15); 
+      color: var(--text-color); 
+      font-weight: 600; 
+      transition: opacity 0.2s; 
+    }
+    
+    button:hover { 
+      opacity: 0.8;
+    }
+
+    .btn-row { 
+      display: flex; 
+      gap: 10px; 
+      margin-top: 15px; 
+    }
+  </style>
+</head>
+<body>
+  <h2>Spotlight Theme</h2>
+  
+  <div class="setting">
+    <label>Background</label>
+    <input type="color" id="bgColor">
+  </div>
+  <div class="setting">
+    <label>Border Color</label>
+    <input type="color" id="borderColor">
+  </div>
+  <div class="setting">
+    <label>Text Color</label>
+    <input type="color" id="textColor">
+  </div>
+  <div class="setting">
+    <label>Border Radius</label>
+    <input type="text" id="borderRadius" placeholder="16px">
+  </div>
+  <div class="setting">
+    <label>Width</label>
+    <input type="text" id="width" placeholder="600px">
+  </div>
+  <div class="setting">
+    <label>Text Size</label>
+    <input type="text" id="fontSize" placeholder="15px">
+  </div>
+
+  <div class="btn-row">
+    <button id="toggleModeBtn">Light / Dark</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div class="btn-row" style="margin-top: 10px; margin-bottom: 5px;">
+    <button id="exportBtn">Export</button>
+    <button id="importBtn">Import</button>
+  </div>
+  <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -9,19 +9,26 @@ document.body.appendChild(hostElement);
 const shadow = hostElement.attachShadow({ mode: 'open' });
 
 const styles = document.createElement('style');
-styles.textContent = `
+styles.textContent = `:host {
+    --bg-color: #1e1e2e;
+    --border-color: #b4befe;
+    --text-color: #cdd6f4;
+    --border-radius: 16px;
+    --width: 600px;
+    --font-size: 15px;
+  }
   #custom-spotlight-container {
     position: absolute;
     top: 20vh;
     left: 50%;
     transform: translateX(-50%);
-    width: 600px;
-    background: #1e1e2e;
-    border: 2px solid #b4befe;
-    border-radius: 16px;
+    width: var(--width);
+    background: var(--bg-color);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #cdd6f4;
+    color: var(--text-color);
     overflow: hidden;
     pointer-events: auto;
     display: none;
@@ -29,10 +36,10 @@ styles.textContent = `
   #custom-spotlight-input {
     width: 100%;
     padding: 20px;
-    font-size: 20px;
+    font-size: calc(var(--font-size) + 5px);
     background: transparent;
     border: none;
-    color: #cdd6f4;
+    color: var(--text-color);
     outline: none;
     box-sizing: border-box;
   }
@@ -74,13 +81,13 @@ styles.textContent = `
     flex-grow: 1;
   }
   .result-title {
-    font-size: 15px;
+    font-size: var(--font-size);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .result-subtitle {
-    font-size: 12px;
+    font-size: calc(var(--font-size) - 3px);
     color: #a6adc8;
     white-space: nowrap;
     overflow: hidden;
@@ -88,7 +95,7 @@ styles.textContent = `
     margin-top: 2px;
   }
   .badge {
-    font-size: 11px;
+    font-size: calc(var(--font-size) - 4px);
     background: #45475a;
     padding: 3px 8px;
     border-radius: 6px;
@@ -105,6 +112,25 @@ styles.textContent = `
   }
 `;
 shadow.appendChild(styles);
+
+chrome.storage.sync.get('themeConfig', (data) => {
+  if (data.themeConfig) applyTheme(data.themeConfig);
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.themeConfig) {
+    applyTheme(changes.themeConfig.newValue);
+  }
+});
+
+function applyTheme(theme) {
+  hostElement.style.setProperty('--bg-color', theme.bgColor);
+  hostElement.style.setProperty('--border-color', theme.borderColor);
+  hostElement.style.setProperty('--text-color', theme.textColor);
+  hostElement.style.setProperty('--border-radius', theme.borderRadius);
+  hostElement.style.setProperty('--width', theme.width);
+  hostElement.style.setProperty('--font-size', theme.fontSize || '15px'); // NEW
+}
 
 const container = document.createElement('div');
 container.id = 'custom-spotlight-container';
