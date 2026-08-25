@@ -59,16 +59,24 @@ function applyTheme(theme) {
 }
 
 function openSpotlight() {
+  container.classList.remove('closing');
   container.style.display = 'block';
   input.focus();
 }
 
 function closeSpotlight() {
-  container.style.display = 'none';
-  input.value = '';
-  resultsDiv.innerHTML = '';
-  currentResults = [];
-  selectedIndex = 0;
+  container.classList.add('closing');
+  
+  setTimeout(() => {
+    if (container.classList.contains('closing')) {
+      container.style.display = 'none';
+      container.classList.remove('closing');
+      input.value = '';
+      resultsDiv.innerHTML = '';
+      currentResults = [];
+      selectedIndex = 0;
+    }
+  }, 150);
 }
 
 function executeItem(itemObj) {
