@@ -1,6 +1,9 @@
 let currentResults = [];
 let selectedIndex = 0;
 
+let lastHoverX = 0;
+let lastHoverY = 0;
+
 const hostElement = document.createElement('div');
 hostElement.id = 'custom-spotlight-host';
 hostElement.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647; pointer-events: none;';
@@ -166,7 +169,16 @@ function renderResultsList() {
       `;
     }
 
-    div.onmouseenter = () => { selectedIndex = index; updateSelection(); };
+    div.addEventListener('mousemove', (e) => {
+      if (e.clientX !== lastHoverX || e.clientY !== lastHoverY) {
+        lastHoverX = e.clientX;
+        lastHoverY = e.clientY;
+        if (selectedIndex !== index) {
+          selectedIndex = index;
+          updateSelection();
+        }
+      }
+    });    
     div.onclick = () => executeItem(obj);
     resultsDiv.appendChild(div);
   });
