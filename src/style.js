@@ -51,6 +51,7 @@ const SPOTLIGHT_CSS = `
     pointer-events: auto;
     display: none;
     
+    transition: height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     animation: spotlightSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 

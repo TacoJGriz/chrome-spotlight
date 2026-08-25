@@ -61,6 +61,7 @@ function applyTheme(theme) {
 function openSpotlight() {
   container.classList.remove('closing');
   container.style.display = 'block';
+  container.style.height = 'auto';
   input.focus();
 }
 
@@ -116,6 +117,8 @@ function updateSelection() {
 }
 
 function renderResultsList() {
+  const startHeight = container.offsetHeight;
+
   resultsDiv.innerHTML = '';
   currentResults.forEach((obj, index) => {
     const { item, category } = obj;
@@ -169,6 +172,16 @@ function renderResultsList() {
   });
 
   updateSelection();
+
+  container.style.transition = 'none';
+  container.style.height = 'auto';
+  const targetHeight = container.offsetHeight;
+
+  container.style.height = startHeight + 'px';
+  void container.offsetHeight; // Force reflow
+
+  container.style.transition = '';
+  container.style.height = targetHeight + 'px';
 }
 
 chrome.runtime.onMessage.addListener((request) => {
@@ -183,8 +196,8 @@ input.addEventListener('input', (e) => {
   const ALL_BANGS = getCombinedBangs();
   
   if (trimmedQuery.length === 0) {
-    resultsDiv.innerHTML = '';
     currentResults = [];
+    renderResultsList();
     return;
   }
 
