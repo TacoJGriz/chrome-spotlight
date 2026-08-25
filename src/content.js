@@ -66,6 +66,7 @@ function applyTheme(theme) {
   hostElement.style.setProperty('--backdrop-blur', theme.backdropBlur || '0px');
   hostElement.style.setProperty('--accent-color', theme.accentColor || '#313244');
   hostElement.style.setProperty('--container-opacity', theme.opacity || '1');
+  hostElement.style.setProperty('--border-width', theme.borderWidth || '2px');
 }
 
 function openSpotlight() {

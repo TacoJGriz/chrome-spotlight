@@ -9,7 +9,8 @@ const darkDefaults = {
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   opacity: '1',
   backdropBlur: '0px',
-  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.6)'
+  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.6)',
+  borderWidth: '2px'
 };
 
 const lightDefaults = { 
@@ -23,13 +24,14 @@ const lightDefaults = {
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   opacity: '1',
   backdropBlur: '0px',
-  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.2)'
+  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.2)',
+  borderWidth: '2px'
 };
 
 const inputs = [
   'bgColor', 'borderColor', 'textColor', 'accentColor', 
   'borderRadius', 'width', 'fontSize', 'fontFamily', 
-  'opacity', 'backdropBlur', 'boxShadow'
+  'opacity', 'backdropBlur', 'boxShadow', 'borderWidth'
 ];
 
 let isCurrentDark = true;

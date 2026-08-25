@@ -50,7 +50,7 @@ const SPOTLIGHT_CSS = `
     
     background: color-mix(in srgb, var(--bg-color) calc(var(--container-opacity, 1) * 100%), transparent);
     
-    border: 2px solid var(--border-color);
+    border: var(--border-width, 2px) solid var(--border-color);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     font-family: var(--font-family);
