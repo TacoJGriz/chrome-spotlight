@@ -1,7 +1,37 @@
-const darkDefaults = { bgColor: '#1e1e2e', borderColor: '#b4befe', textColor: '#cdd6f4', borderRadius: '16px', width: '600px', fontSize: '15px' };
-const lightDefaults = { bgColor: '#ffffff', borderColor: '#0055ff', textColor: '#111111', borderRadius: '16px', width: '600px', fontSize: '15px' };
+const darkDefaults = { 
+  bgColor: '#1e1e2e', 
+  borderColor: '#b4befe', 
+  textColor: '#cdd6f4', 
+  accentColor: '#313244',
+  borderRadius: '16px', 
+  width: '600px', 
+  fontSize: '15px',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  opacity: '1',
+  backdropBlur: '0px',
+  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.6)'
+};
 
-const inputs = ['bgColor', 'borderColor', 'textColor', 'borderRadius', 'width', 'fontSize'];
+const lightDefaults = { 
+  bgColor: '#ffffff', 
+  borderColor: '#0055ff', 
+  textColor: '#111111', 
+  accentColor: '#e0e0e0',
+  borderRadius: '16px', 
+  width: '600px', 
+  fontSize: '15px',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  opacity: '1',
+  backdropBlur: '0px',
+  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.2)'
+};
+
+const inputs = [
+  'bgColor', 'borderColor', 'textColor', 'accentColor', 
+  'borderRadius', 'width', 'fontSize', 'fontFamily', 
+  'opacity', 'backdropBlur', 'boxShadow'
+];
+
 let isCurrentDark = true;
 
 function applyThemeToPopup(theme) {
@@ -22,25 +52,33 @@ chrome.storage.sync.get('themeConfig', (data) => {
   isCurrentDark = theme.bgColor === darkDefaults.bgColor || isSysDark;
 
   inputs.forEach(id => {
-    document.getElementById(id).value = theme[id] || (isCurrentDark ? darkDefaults[id] : lightDefaults[id]);
+    const el = document.getElementById(id);
+    if (el) el.value = theme[id] !== undefined ? theme[id] : (isCurrentDark ? darkDefaults[id] : lightDefaults[id]);
   });
   
   applyThemeToPopup(theme);
 });
 
 inputs.forEach(id => {
-  document.getElementById(id).addEventListener('input', saveSettings);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', saveSettings);
 });
 
 function saveSettings() {
   const newTheme = {};
-  inputs.forEach(id => newTheme[id] = document.getElementById(id).value);
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) newTheme[id] = el.value;
+  });
   chrome.storage.sync.set({ themeConfig: newTheme });
   applyThemeToPopup(newTheme); 
 }
 
 function applyPreset(themeObj) {
-  inputs.forEach(id => document.getElementById(id).value = themeObj[id]);
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = themeObj[id];
+  });
   saveSettings();
 }
 
@@ -89,3 +127,9 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
 });
 
 document.getElementById('optionsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+  if (tabs[0]) {
+    chrome.tabs.sendMessage(tabs[0].id, {action: "forceOpen"}).catch(() => {});
+  }
+});

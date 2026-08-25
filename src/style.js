@@ -27,12 +27,18 @@ const SPOTLIGHT_CSS = `
   }
 
   :host {
-    --bg-color: #1e1e2e;
+    --bg-color: rgba(30, 30, 46, 0.85); /* Example of using rgba for background opacity */
     --border-color: #b4befe;
     --text-color: #cdd6f4;
     --border-radius: 16px;
     --width: 600px;
     --font-size: 15px;
+    
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    --backdrop-blur: 10px;
+    --accent-color: #313244;
+    --container-opacity: 1;
   }
   
   #custom-spotlight-container {
@@ -41,11 +47,17 @@ const SPOTLIGHT_CSS = `
     left: 50%;
     transform: translateX(-50%);
     width: var(--width);
-    background: var(--bg-color);
+    
+    background: color-mix(in srgb, var(--bg-color) calc(var(--container-opacity, 1) * 100%), transparent);
+    
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-shadow: var(--box-shadow);
+    font-family: var(--font-family);
+    
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    
     color: var(--text-color);
     overflow: hidden;
     pointer-events: auto;
@@ -87,7 +99,7 @@ const SPOTLIGHT_CSS = `
   }
 
   .result-item.selected {
-    background: #313244;
+    background: var(--accent-color);
     padding-left: 24px; 
   }
 

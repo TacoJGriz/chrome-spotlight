@@ -61,6 +61,11 @@ function applyTheme(theme) {
   hostElement.style.setProperty('--border-radius', theme.borderRadius);
   hostElement.style.setProperty('--width', theme.width);
   hostElement.style.setProperty('--font-size', theme.fontSize || '15px');
+  hostElement.style.setProperty('--font-family', theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif');
+  hostElement.style.setProperty('--box-shadow', theme.boxShadow || '0 15px 40px rgba(0, 0, 0, 0.6)');
+  hostElement.style.setProperty('--backdrop-blur', theme.backdropBlur || '0px');
+  hostElement.style.setProperty('--accent-color', theme.accentColor || '#313244');
+  hostElement.style.setProperty('--container-opacity', theme.opacity || '1');
 }
 
 function openSpotlight() {
@@ -215,6 +220,8 @@ function renderResultsList() {
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "toggle") {
     container.style.display === 'block' ? closeSpotlight() : openSpotlight();
+  } else if (request.action === "forceOpen") {
+    openSpotlight();
   }
 });
 
