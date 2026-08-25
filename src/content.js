@@ -174,6 +174,40 @@ input.addEventListener('input', (e) => {
   const trimmedQuery = rawQuery.trim();
   const ALL_BANGS = getCombinedBangs();
   
+  if (trimmedQuery.length === 0) {
+    resultsDiv.innerHTML = '';
+    currentResults = [];
+    return;
+  }
+
+  const aliasMatch = Object.keys(customAliases).find(k => trimmedQuery === k || trimmedQuery.startsWith(k + ' '));
+  if (aliasMatch) {
+    let safeUrl = customAliases[aliasMatch].url;
+    if (!safeUrl.startsWith('http')) safeUrl = 'https://' + safeUrl;
+
+    currentResults = [{ 
+      category: 'Alias', 
+      item: { name: `Warp to ${customAliases[aliasMatch].name}`, url: safeUrl } 
+    }];
+    selectedIndex = 0;
+    renderResultsList();
+    return;
+  }
+
+  const bangMatch = trimmedQuery.match(/^(![a-zA-Z0-9]+)\s+(.*)/);
+  if (bangMatch && ALL_BANGS[bangMatch[1]]) {
+    currentResults = [{ 
+      category: 'Bang', 
+      item: { 
+        name: `Search ${ALL_BANGS[bangMatch[1]].name} for "${bangMatch[2]}"`, 
+        url: ALL_BANGS[bangMatch[1]].url + encodeURIComponent(bangMatch[2]) 
+      } 
+    }];
+    selectedIndex = 0;
+    renderResultsList();
+    return;
+  }
+
   if (trimmedQuery.startsWith('/') && !trimmedQuery.includes(' ')) {
     const nativeCmds = [
       { key: '/t', desc: 'Search Open Tabs' },
@@ -183,7 +217,7 @@ input.addEventListener('input', (e) => {
     ].filter(c => c.key.startsWith(trimmedQuery));
     
     const customCmds = Object.keys(customAliases)
-      .filter(k => k.startsWith(trimmedQuery))
+      .filter(k => k.startsWith(trimmedQuery) && k !== trimmedQuery)
       .map(k => ({ key: k, desc: customAliases[k].name }));
 
     const cmds = [...nativeCmds, ...customCmds];
@@ -213,29 +247,16 @@ input.addEventListener('input', (e) => {
   }
   
   let filter = null;
-  if (rawQuery.startsWith('/t ')) { filter = 'Tab'; rawQuery = rawQuery.slice(3); }
-  else if (rawQuery.startsWith('/b ')) { filter = 'Bookmark'; rawQuery = rawQuery.slice(3); }
-  else if (rawQuery.startsWith('/h ')) { filter = 'History'; rawQuery = rawQuery.slice(3); }
-  else if (rawQuery.startsWith('/e ')) { filter = 'Extension'; rawQuery = rawQuery.slice(3); }
+  let processedQuery = rawQuery;
+  
+  if (processedQuery.startsWith('/t ')) { filter = 'Tab'; processedQuery = processedQuery.slice(3).trim(); }
+  else if (processedQuery.startsWith('/b ')) { filter = 'Bookmark'; processedQuery = processedQuery.slice(3).trim(); }
+  else if (processedQuery.startsWith('/h ')) { filter = 'History'; processedQuery = processedQuery.slice(3).trim(); }
+  else if (processedQuery.startsWith('/e ')) { filter = 'Extension'; processedQuery = processedQuery.slice(3).trim(); }
+  else { processedQuery = processedQuery.trim(); }
 
-  const processedQuery = rawQuery.trim();
   if (processedQuery.length === 0 && !filter) {
     resultsDiv.innerHTML = '';
-    currentResults = [];
-    return;
-  }
-
-  const aliasMatch = Object.keys(customAliases).find(k => processedQuery === k || processedQuery.startsWith(k + ' '));
-  if (aliasMatch) {
-    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to open <strong>${customAliases[aliasMatch].name}</strong></div></div></div>`;
-    currentResults = [{ category: 'Alias', item: customAliases[aliasMatch] }];
-    selectedIndex = 0;
-    return;
-  }
-
-  const bangMatch = processedQuery.match(/^(![a-zA-Z0-9]+)\s+(.*)/);
-  if (bangMatch && ALL_BANGS[bangMatch[1]]) {
-    resultsDiv.innerHTML = `<div class="result-item selected"><div class="result-content"><div class="result-title">Press Enter to search ${ALL_BANGS[bangMatch[1]].name} for "${bangMatch[2]}"</div></div></div>`;
     currentResults = [];
     return;
   }
