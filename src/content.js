@@ -9,128 +9,8 @@ document.body.appendChild(hostElement);
 const shadow = hostElement.attachShadow({ mode: 'open' });
 
 const styles = document.createElement('style');
-styles.textContent = `:host {
-    --bg-color: #1e1e2e;
-    --border-color: #b4befe;
-    --text-color: #cdd6f4;
-    --border-radius: 16px;
-    --width: 600px;
-    --font-size: 15px;
-  }
-  #custom-spotlight-container {
-    position: absolute;
-    top: 20vh;
-    left: 50%;
-    transform: translateX(-50%);
-    width: var(--width);
-    background: var(--bg-color);
-    border: 2px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: var(--text-color);
-    overflow: hidden;
-    pointer-events: auto;
-    display: none;
-  }
-  #custom-spotlight-input {
-    width: 100%;
-    padding: 20px;
-    font-size: calc(var(--font-size) + 5px);
-    background: transparent;
-    border: none;
-    color: var(--text-color);
-    outline: none;
-    box-sizing: border-box;
-  }
-  #custom-spotlight-results {
-    max-height: 400px;
-    overflow-y: auto;
-    border-top: 1px solid #313244;
-  }
-  .result-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 20px;
-    cursor: pointer;
-  }
-  .result-item.selected {
-    background: #313244;
-  }
-  .result-icon, .result-icon-placeholder {
-    width: 20px;
-    height: 20px;
-    margin-right: 12px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-  .result-icon-placeholder {
-    background: #45475a;
-  }
-  .calc-icon {
-    fill: #cdd6f4;
-    width: 20px;
-    height: 20px;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-  .result-content {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    flex-grow: 1;
-  }
-  .result-title {
-    font-size: var(--font-size);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .result-subtitle {
-    font-size: calc(var(--font-size) - 3px);
-    color: #a6adc8;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 2px;
-  }
-  .badge {
-    font-size: calc(var(--font-size) - 4px);
-    background: #45475a;
-    padding: 3px 8px;
-    border-radius: 6px;
-    color: #bac2de;
-    margin-left: 10px;
-    flex-shrink: 0;
-  }
-  .result-item.selected .badge {
-    background: #585b70;
-  }
-  .calc-result-text {
-    color: #a6e3a1;
-    font-weight: 600;
-  }
-`;
+styles.textContent = SPOTLIGHT_CSS;
 shadow.appendChild(styles);
-
-chrome.storage.sync.get('themeConfig', (data) => {
-  if (data.themeConfig) applyTheme(data.themeConfig);
-});
-
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.themeConfig) {
-    applyTheme(changes.themeConfig.newValue);
-  }
-});
-
-function applyTheme(theme) {
-  hostElement.style.setProperty('--bg-color', theme.bgColor);
-  hostElement.style.setProperty('--border-color', theme.borderColor);
-  hostElement.style.setProperty('--text-color', theme.textColor);
-  hostElement.style.setProperty('--border-radius', theme.borderRadius);
-  hostElement.style.setProperty('--width', theme.width);
-  hostElement.style.setProperty('--font-size', theme.fontSize || '15px'); // NEW
-}
 
 const container = document.createElement('div');
 container.id = 'custom-spotlight-container';
@@ -148,78 +28,21 @@ container.appendChild(input);
 container.appendChild(resultsDiv);
 shadow.appendChild(container);
 
-const BANGS = {
-  '!g': 'https://google.com/search?q=',
-  '!w': 'https://en.wikipedia.org/wiki/Special:Search?search=',
-  '!y': 'https://www.youtube.com/results?search_query=',
-  '!d': 'https://duckduckgo.com/?q='
-};
+chrome.storage.sync.get('themeConfig', (data) => {
+  if (data.themeConfig) applyTheme(data.themeConfig);
+});
 
-function calculateMath(query) {
-  let trimmed = query.trim().toLowerCase().replace(/x/g, '*');
-  if (!/\d/.test(trimmed)) return null;
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.themeConfig) applyTheme(changes.themeConfig.newValue);
+});
 
-  const factMatch = trimmed.match(/^(\d+)\s*!$/);
-  if (factMatch) {
-    const n = parseInt(factMatch[1], 10);
-    if (n === 0 || n === 1) return 1;
-    if (n > 170) return Infinity; 
-    let res = 1;
-    for (let i = 2; i <= n; i++) res *= i;
-    return res;
-  }
-
-  const pctMatch = trimmed.match(/^(-?\d*\.?\d+)\s*%\s*of\s*(-?\d*\.?\d+)$/);
-  if (pctMatch) return parseFloat(pctMatch[1]) * parseFloat(pctMatch[2]) / 100;
-
-  const singlePctMatch = trimmed.match(/^(-?\d*\.?\d+)\s*%$/);
-  if (singlePctMatch) return parseFloat(singlePctMatch[1]) / 100;
-
-  const mathMatch = trimmed.match(/^(-?\d*\.?\d+)\s*(%?)\s*([-+*/^]|\*\*)\s*(-?\d*\.?\d+)\s*(%?)$/);
-  if (mathMatch) {
-    let a = parseFloat(mathMatch[1]);
-    if (mathMatch[2] === '%') a = a / 100;
-    const op = mathMatch[3];
-    let b = parseFloat(mathMatch[4]);
-    if (mathMatch[5] === '%') b = b / 100;
-    switch(op) {
-      case '+': return a + b;
-      case '-': return a - b;
-      case '*': return a * b;
-      case '/': return b !== 0 ? a / b : null;
-      case '^': case '**': return Math.pow(a, b);
-    }
-  }
-  return null; 
-}
-
-function scoreItem(target, query) {
-  if (!target || !query) return 0;
-  const t = target.toLowerCase();
-  const q = query.toLowerCase();
-
-  if (t === q) return 1000;
-  if (t.startsWith(q)) return 500 + (100 / t.length);
-
-  const words = t.split(/[\s\-_/.]+/);
-  for (const word of words) {
-    if (word.startsWith(q)) return 400 + (50 / t.length);
-  }
-
-  if (t.includes(q)) return 200 + (50 / t.length);
-
-  let score = 0, tIdx = 0, qIdx = 0, consecutiveMatches = 0;
-  while (tIdx < t.length && qIdx < q.length) {
-    if (t[tIdx] === q[qIdx]) {
-      qIdx++; consecutiveMatches++;
-      score += 10 + (consecutiveMatches * 5); 
-    } else {
-      consecutiveMatches = 0;
-    }
-    tIdx++;
-  }
-  if (qIdx === q.length) return score - (t.length * 0.1); 
-  return 0; 
+function applyTheme(theme) {
+  hostElement.style.setProperty('--bg-color', theme.bgColor);
+  hostElement.style.setProperty('--border-color', theme.borderColor);
+  hostElement.style.setProperty('--text-color', theme.textColor);
+  hostElement.style.setProperty('--border-radius', theme.borderRadius);
+  hostElement.style.setProperty('--width', theme.width);
+  hostElement.style.setProperty('--font-size', theme.fontSize || '15px');
 }
 
 function openSpotlight() {
@@ -301,12 +124,10 @@ input.addEventListener('input', (e) => {
         const title = item.title || item.name || '';
         const url = item.url || '';
         const titleScore = scoreItem(title, trimmedQuery);
-        const urlScore = scoreItem(url, trimmedQuery) * 0.5;
+        const urlScore = scoreItem(url, trimmedQuery) * 0.5; 
         const totalScore = Math.max(titleScore, urlScore);
 
-        if (totalScore > 0 || trimmedQuery.length === 0) {
-          pool.push({ item, category, score: totalScore });
-        }
+        if (totalScore > 0 || trimmedQuery.length === 0) pool.push({ item, category, score: totalScore });
       });
     };
 
@@ -424,13 +245,9 @@ container.addEventListener('keyup', (e) => e.stopPropagation());
 container.addEventListener('keypress', (e) => e.stopPropagation());
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && container.style.display === 'block') {
-    closeSpotlight();
-  }
+  if (e.key === 'Escape' && container.style.display === 'block') closeSpotlight();
 });
 
 document.addEventListener('mousedown', (e) => {
-  if (container.style.display === 'block' && e.target !== hostElement) {
-    closeSpotlight();
-  }
+  if (container.style.display === 'block' && e.target !== hostElement) closeSpotlight();
 });

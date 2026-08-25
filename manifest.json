@@ -17,7 +17,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content.js"]
+      "js": ["src/style.js", "src/bangs.js", "src/math.js", "src/fuzzy.js", "src/content.js"]
     }
   ],
   "action": {
